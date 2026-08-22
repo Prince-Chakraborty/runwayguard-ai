@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentMode {
+  mock
+  razorpay
+}
+
+enum PayableStatus {
+  pending
+  held
+  paid
+  cancelled
+}
+
+enum VendorCriticality {
+  low
+  medium
+  critical
+}
+
+enum ActionType {
+  hold_payable
+  release_payable
+  early_settlement_request
+}
+
+enum ActionStatus {
+  proposed
+  auto_executed
+  pending_approval
+  rejected
+  executed
+  failed
+}
+
+enum ApprovalDecision {
+  pending
+  approved
+  rejected
+}
+
+enum ActorType {
+  agent
+  human
+  system
+}
+
+model Merchant {
+  id            String    @id @default(cuid())
+  name          String
+  mode          PaymentMode @default(mock)
+  createdAt     DateTime  @default(now())
+
+  vendors       Vendor[]
+  payables      Payable[]
+  settlements   Settlement[]
+  agentRuns     AgentRun[]
+  policy        Policy?
+  auditLogs     AuditLog[]
+  snapshots     CashPositionSnapshot[]
+
+  @@index([id])
+}
+
+model Policy {
+  id                      String   @id @default(cuid())
+  merchantId              String   @unique
+  merchant                Merchant @relation(fields: [merchantId], references: [id])
+
+  autoActionLimit         Int      @default(50000)
+  maxDelayDays            Int      @default(3)
+  minForecastConfidence   Float    @default(0.85)
+  criticalVendorProtection Boolean @default(true)
+  humanApprovalAbove      Int      @default(50000)
+
+  updatedAt               DateTime @updatedAt
+}
+
+model Vendor {
+  id                  String   @id @default(cuid())
+  merchantId          String
+  merchant            Merchant @relation(fields: [merchantId], references: [id])
+  name                String
+  criticality         VendorCriticality @default(medium)
+  paymentHistoryScore Float    @default(0.8)
+  relationshipStartDate DateTime @default(now())
+
+  payables            Payable[]
+
+  @@index([merchantId])
+}
+
+model Payable {
+  id           String   @id @default(cuid())
+  merchantId   String
+  merchant     Merchant @relation(fields: [merchantId], references: [id])
+  vendorId     String
+  vendor       Vendor   @relation(fields: [vendorId], references: [id])
+  amount       Int
+  dueDate      DateTime
+  status       PayableStatus @default(pending)
+  createdAt    DateTime @default(now())
+
+  @@index([merchantId])
+  @@index([dueDate])
+}
+
+model Settlement {
+  id            String   @id @default(cuid())
+  merchantId    String
+  merchant      Merchant @relation(fields: [merchantId], references: [id])
+  expectedDate  DateTime
+  amount        Int
+  status        String   @default("expected")
+
+  @@index([merchantId])
+  @@index([expectedDate])
+}
+
+model CashPositionSnapshot {
+  id               String   @id @default(cuid())
+  merchantId       String
+  merchant         Merchant @relation(fields: [merchantId], references: [id])
+  agentRunId       String
+  agentRun         AgentRun @relation(fields: [agentRunId], references: [id])
+  date             DateTime
+  projectedBalance Int
+  confidence       Float
+  createdAt        DateTime @default(now())
+
+  @@index([merchantId, date])
+  @@index([agentRunId])
+}
+
+model AgentRun {
+  id                String   @id @default(cuid())
+  merchantId        String
+  merchant          Merchant @relation(fields: [merchantId], references: [id])
+  forecastHorizonDays Int
+  minConfidence     Float
+  shortfallDetected Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  snapshots         CashPositionSnapshot[]
+  actions           AgentAction[]
+
+  @@index([merchantId, createdAt])
+}
+
+model AgentAction {
+  id              String   @id @default(cuid())
+  agentRunId      String
+  agentRun        AgentRun @relation(fields: [agentRunId], references: [id])
+  type            ActionType
+  targetPayableId String?
+  amount          Int
+  riskScore       Float
+  reason          String
+  status          ActionStatus @default(proposed)
+  idempotencyKey  String   @unique
+  createdAt       DateTime @default(now())
+  executedAt      DateTime?
+
+  approval        Approval?
+
+  @@index([agentRunId])
+}
+
+model Approval {
+  id             String   @id @default(cuid())
+  agentActionId  String   @unique
+  agentAction    AgentAction @relation(fields: [agentActionId], references: [id])
+  requestedAt    DateTime @default(now())
+  decidedAt      DateTime?
+  decidedBy      String?
+  decision       ApprovalDecision @default(pending)
+
+  @@index([decision])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  actorType   ActorType
+  action      String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@index([merchantId, createdAt])
+}
+
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  providerEventId String   @unique
+  type            String
+  payload         Json
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+}
