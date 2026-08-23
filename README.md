@@ -13,110 +13,118 @@ Indian SME merchants rarely fail because of low sales. They fail because payable
 ## Why Existing Solutions Aren't Enough
 
 - Accounting tools show historical state. They don't forecast forward or act.
-- Razorpay's own Agent Studio ships strong reactive agents - dispute handling, failed-payment recovery, RTO analysis, reconciliation, invoice follow-up. Every one responds to an event that already happened. Nothing autonomously intervenes to protect runway before a shortfall lands.
+- Razorpay's own Agent Studio ships strong reactive agents — dispute handling, failed-payment recovery, RTO analysis, reconciliation, invoice follow-up. Every one responds to an event that already happened. Nothing autonomously intervenes to protect runway before a shortfall lands.
+- Nothing in the current landscape closes the loop from forecast to decision to safe autonomous action.
 
 ## The RunwayGuard Solution
 
-RunwayGuard continuously forecasts a merchant's 14-day cash position from real payables, settlements, and account balance data. When it detects a coming shortfall, it plans a sequence of interventions, executes only what's safe under hard server-side limits, and asks a human before anything irreversible or high-risk.
+RunwayGuard continuously forecasts a merchant's 14-day cash position from real payables, settlements, and account balance data. When it detects a coming shortfall, it plans a sequence of interventions, executes only what's safe under hard server-side limits, and asks a human before anything irreversible or high-risk. Every decision is logged with a plain-English reason.
 
-This is forward-looking and protective, not reactive.
+**This is forward-looking and protective, not reactive.**
 
 ## Agent Workflow
-Merchant data (payables, settlements, balance)
-|
-v
-FORECAST -- deterministic 14-day cash projection
-|
-v
-PLAN -- planner proposes interventions
-|
-v
-GUARD -- deterministic policy engine evaluates every action
-|
-+--------------+
-v v
-AUTO-EXECUTE ESCALATE (human approval required)
-| |
-v v
-VERIFY <------------+
-|
-v
-AUDIT LOG
 
-The guardrail layer is the safety boundary. It re-validates every proposed action regardless of what the planner proposed. No planner output ever executes a financial action directly.
+```
+Merchant data (payables, settlements, balance)
+        |
+        v
+   FORECAST  --  deterministic 14-day cash projection
+        |
+        v
+     PLAN    --  planner proposes interventions
+        |
+        v
+    GUARD    --  deterministic policy engine evaluates every action
+        |
+        +----------------+
+        v                v
+  AUTO-EXECUTE       ESCALATE (human approval required)
+        |                |
+        v                v
+   VERIFY   <-------------+
+        |
+        v
+  AUDIT LOG  (immutable, every stage recorded)
+```
+
+The guardrail layer is the safety boundary. It re-validates every proposed action against merchant-configured policy regardless of what the planner proposed. No planner output ever executes a financial action directly.
 
 ## Architecture
 
-See docs/ARCHITECTURE.md for the full diagram.
+See `docs/ARCHITECTURE.md` for the full diagram and component breakdown.
 
-Stack: Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Vitest, JWT auth with bcrypt. Modular monolith - no microservices.
+**Stack:** Next.js (App Router) + TypeScript, PostgreSQL + Prisma (driver adapters), Vitest, JWT auth with bcrypt. Modular monolith — no microservices; a hackathon-scale product doesn't need the coordination overhead.
 
-Planner abstraction:
-            Planner Interface
-                   |
-        +----------+----------+
-        v                     v
- HeuristicPlanner       ClaudePlanner
- (deterministic,        (Claude, forced
-  zero API keys)         tool-use)
-        |                     |
-        +----------+----------+
-                   v
-            Same Plan Schema (Zod-validated)
-                   v
-            Same Guardrail Engine
-                   v
-            Same Execution Path
-                   v
-            Same Audit Trail
+**Planner abstraction:**
 
-Both planners are kept permanently. The heuristic planner proves the guardrail and execution pipeline works independent of any LLM.
+```
+                  Planner Interface
+                         |
+            +------------+------------+
+            v                         v
+     HeuristicPlanner           ClaudePlanner
+     (deterministic,            (Claude, forced
+      zero API keys)             tool-use, schema-
+            |                    validated output)
+            |                         |
+            +------------+------------+
+                         v
+                Same Plan Schema (Zod-validated)
+                         v
+                 Same Guardrail Engine
+                         v
+                 Same Execution Path
+                         v
+                  Same Audit Trail
+```
+
+Both planners are kept permanently, not as a fallback removed once AI is available. The heuristic planner proves the guardrail and execution pipeline works independent of any LLM, and keeps the product demoable with zero external dependencies.
 
 ## Guardrails
 
-All financial-action safety logic lives server-side in lib/policy/guardrail-engine.ts, never inside a prompt.
+All financial-action safety logic lives server-side in `lib/policy/guardrail-engine.ts`, never inside a prompt, never trusted from LLM output.
 
 | Policy field | Purpose |
 |---|---|
-| autoActionLimit | Rupee ceiling for autonomous execution |
-| maxDelayDays | Cap on how long a hold can autonomously extend |
-| minForecastConfidence | Below this, every action escalates |
-| criticalVendorProtection | Critical vendor holds always escalate |
-| humanApprovalAbove | Hard ceiling above which nothing auto-executes |
+| `autoActionLimit` | Rupee ceiling for autonomous execution |
+| `maxDelayDays` | Cap on how long a hold can autonomously extend |
+| `minForecastConfidence` | Below this, every action escalates regardless of amount |
+| `criticalVendorProtection` | Critical vendor holds always escalate, regardless of amount |
+| `humanApprovalAbove` | Hard rupee ceiling above which nothing auto-executes |
 
-early_settlement_request actions always escalate, unconditionally.
+`early_settlement_request` actions always escalate, unconditionally — treated as irreversible-adjacent regardless of amount or confidence.
 
 ## Security
 
-- JWT-based auth on every API route
+- JWT-based auth on every API route (`lib/auth.ts`)
 - Every database query scoped to the token-verified merchant ID, never a client-supplied ID
-- Proven with a test that merchant A cannot view or act on merchant B's data
+- Proven with an automated test that merchant A cannot view or act on merchant B's data
 - bcrypt-hashed credentials, no plaintext secrets committed
-- Idempotency enforced at two layers: application logic and a database-level unique constraint on idempotencyKey
-- Webhook signature verification (HMAC, timing-safe comparison), implemented and tested
+- Idempotency enforced at two independent layers: application logic and a database-level unique constraint on `idempotencyKey` (proven to reject duplicates with Postgres error `P2002`)
+- Webhook signature verification (HMAC, timing-safe comparison), implemented and tested; activates in production the moment a real `RAZORPAY_WEBHOOK_SECRET` is configured
 
 ## AI Provider
 
-Swappable Claude/heuristic architecture. If ANTHROPIC_API_KEY is set, ClaudePlanner is used (forced tool-use, schema-validated output); otherwise HeuristicPlanner runs, fully deterministic, no external API required.
+**Swappable Claude/heuristic architecture.** If `ANTHROPIC_API_KEY` is set, `ClaudePlanner` is used (forced tool-use, Zod-schema-validated structured output); otherwise `HeuristicPlanner` runs, fully deterministic, no external API required.
 
-Claude activation requires an Anthropic API credential, which was not available during this development window. The ClaudePlanner implementation is complete but has not been run end-to-end against a live API. Stated plainly rather than claimed as working.
+**Claude activation requires an Anthropic API credential**, which was not available during this development window. The `ClaudePlanner` implementation is complete but has not been run end-to-end against a live API. Stated plainly rather than claimed as working.
 
 ## Payment Integration
 
-Deterministic Razorpay-shaped mock provider. PAYMENT_PROVIDER=mock or razorpay is set server-side via environment variable only - no UI toggle exists.
+**Deterministic Razorpay-shaped mock provider.** `PAYMENT_PROVIDER=mock|razorpay` is set server-side via environment variable only — no UI toggle exists.
 
-The provider interface uses generic operation names - createPaymentHoldRequest, createReleaseRequest, createEarlySettlementRequest - deliberately, because Razorpay does not currently document a hold-payout endpoint. No unverified Razorpay capability is claimed anywhere in this codebase.
+The provider interface uses generic operation names — `createPaymentHoldRequest()`, `createReleaseRequest()`, `createEarlySettlementRequest()` — deliberately, because Razorpay does not currently document a "hold payout" endpoint. No unverified Razorpay capability is claimed anywhere in this codebase.
 
-The mock provider emits Razorpay-shaped reference IDs and writes real WebhookEvent rows through the same table the production webhook processor consumes.
+The mock provider emits Razorpay-shaped reference IDs (`mock_pout_...`) and writes real `WebhookEvent` rows through the same table the production webhook processor consumes.
 
-A Razorpay sandbox adapter is architecturally supported but live credentials were not available during development, so it has not been built or tested.
+**A Razorpay sandbox adapter is architecturally supported (single implementation swap, zero other code changes) but live credentials were not available during development, so it has not been built or tested.**
 
 ## Setup Instructions
 
 Requires Node.js, PostgreSQL, and npm.
 
 ```bash
-git clone your-repo-url-here
+git clone https://github.com/Prince-Chakraborty/runwayguard-ai.git
 cd runwayguard-ai
 npm install
 cp .env.example .env
@@ -125,7 +133,7 @@ npx tsx prisma/seed/seed.ts
 npm run dev
 ```
 
-npm install also runs prisma generate automatically via postinstall.
+`npm install` also runs `prisma generate` automatically via postinstall.
 
 Generate a demo password hash:
 
@@ -133,9 +141,9 @@ Generate a demo password hash:
 node -e "console.log(require('bcryptjs').hashSync('your-password-here', 10))"
 ```
 
-Paste the result into .env as DEMO_MERCHANT_PASSWORD_HASH. Escape every dollar sign with a backslash, since Next.js performs variable expansion on .env files and bcrypt hashes use dollar signs as delimiters.
+Paste the result into `.env` as `DEMO_MERCHANT_PASSWORD_HASH`. Escape every `$` with a backslash — Next.js performs variable expansion on `.env` files, and bcrypt hashes use `$` as a delimiter.
 
-Visit http://localhost:3000 and sign in with your chosen password.
+Visit `http://localhost:3000` and sign in with your chosen password.
 
 ## Running Tests
 
@@ -147,14 +155,14 @@ npm test
 
 ## Demo Instructions
 
-See docs/DEMO_SCRIPT.md for the full walkthrough. Short version: seed data creates a merchant with a genuine forecasted shortfall six days out. Click "Run Agent Cycle" on the Command Center - watch the loop strip light up, the runway chart update, three low or medium-risk payables auto-execute, and one critical-vendor payable escalate to the Approval Queue for a human decision.
+See `docs/DEMO_SCRIPT.md` for the full walkthrough. Short version: seed data creates a merchant with a genuine forecasted shortfall six days out. Click "Run Agent Cycle" on the Command Center — watch the loop strip light up, the runway chart update, three low/medium-risk payables auto-execute, and one critical-vendor payable escalate to the Approval Queue for a human decision.
 
 ## Limitations
 
 Stated plainly, not hidden:
 
-- Claude integration is built but unrun - no Anthropic API credential was available during development. Architecture supports it with a single env-var change.
-- Razorpay sandbox integration is not built - no live credentials were available. The adapter interface supports it without touching agent or guardrail logic.
-- Held payables are excluded from the forecast rather than rescheduled to a new due date - a v1 simplification. Production would reschedule and re-forecast.
-- Single-tenant demo auth (one password, one seeded merchant) - production would need per-merchant signup and credential management.
-- No automated tests exist yet for the frontend UI layer - test coverage is backend and API focused.
+- **Claude integration is built but unrun** — no Anthropic API credential was available during development. Architecture supports it with a single env-var change.
+- **Razorpay sandbox integration is not built** — no live credentials were available. The adapter interface supports it without touching agent or guardrail logic.
+- **Held payables are excluded from the forecast rather than rescheduled** to a new due date — a v1 simplification. Production would reschedule to `dueDate + delayDays` and re-forecast.
+- **Single-tenant demo auth** (one password, one seeded merchant) — production would need per-merchant signup and credential management.
+- No automated tests exist yet for the frontend UI layer — test coverage is backend/API-focused.
