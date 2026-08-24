@@ -20,7 +20,16 @@ export async function POST(req: NextRequest) {
 
   const valid = await bcrypt.compare(password ?? "", demoPasswordHash);
   if (!valid) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    // TEMPORARY DIAGNOSTIC - remove after debugging
+    return NextResponse.json({
+      error: "Invalid credentials",
+      debug: {
+        hashLength: demoPasswordHash.length,
+        hashFirst10: demoPasswordHash.slice(0, 10),
+        hashLast4: demoPasswordHash.slice(-4),
+        passwordReceived: password ?? "(none)",
+      }
+    }, { status: 401 });
   }
 
   const merchant = await prisma.merchant.findFirst({ orderBy: { createdAt: "desc" } });
