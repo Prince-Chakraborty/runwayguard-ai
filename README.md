@@ -8,6 +8,8 @@ Built for the Razorpay AI Buildathon 2026 — AI Finance Controller track.
 
 **33/33 automated tests passing** | **Deterministic financial guardrails** | **Full audit trail**
 
+Real engineering issues hit and fixed during development are documented as closed GitHub Issues, not hidden: [#1 production login bug](https://github.com/Prince-Chakraborty/runwayguard-ai/issues/1), [#2 Prisma 7 breaking change](https://github.com/Prince-Chakraborty/runwayguard-ai/issues/2), [#3 duplicate escalation bug caught by tests](https://github.com/Prince-Chakraborty/runwayguard-ai/issues/3).
+
 ---
 
 ## The Problem
