@@ -10,26 +10,22 @@ import { signMerchantToken } from "@/lib/auth";
 export async function POST(req: NextRequest) {
   const { password } = await req.json();
 
-  const demoPasswordHash = process.env.DEMO_MERCHANT_PASSWORD_HASH;
-  if (!demoPasswordHash) {
+  // Stored base64-encoded to survive env var systems (Vercel, some CI
+  // platforms) that perform unwanted $-prefixed variable interpolation on
+  // raw bcrypt hashes, silently corrupting them. Decoding here avoids that
+  // entire class of platform-specific env var bugs.
+  const demoPasswordHashRaw = process.env.DEMO_MERCHANT_PASSWORD_HASH;
+  if (!demoPasswordHashRaw) {
     return NextResponse.json(
       { error: "Server misconfigured: DEMO_MERCHANT_PASSWORD_HASH not set." },
       { status: 500 }
     );
   }
+  const demoPasswordHash = Buffer.from(demoPasswordHashRaw, "base64").toString("utf-8");
 
   const valid = await bcrypt.compare(password ?? "", demoPasswordHash);
   if (!valid) {
-    // TEMPORARY DIAGNOSTIC - remove after debugging
-    return NextResponse.json({
-      error: "Invalid credentials",
-      debug: {
-        hashLength: demoPasswordHash.length,
-        hashFirst10: demoPasswordHash.slice(0, 10),
-        hashLast4: demoPasswordHash.slice(-4),
-        passwordReceived: password ?? "(none)",
-      }
-    }, { status: 401 });
+    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
   const merchant = await prisma.merchant.findFirst({ orderBy: { createdAt: "desc" } });
