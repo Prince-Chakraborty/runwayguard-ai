@@ -172,7 +172,14 @@ export default function Dashboard() {
   const loopStage = !latestRun ? -1 : latestRun.actions.length > 0 ? 4 : latestRun.shortfallDetected ? 2 : 0;
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
+      <div
+        className="w-full px-4 py-2 text-center text-xs font-mono font-medium"
+        style={{ background: "var(--accent-watch)", color: "#1a1200" }}
+      >
+        DEMO MODE — Simulated payment actions. No real money is moved.
+      </div>
+      <div className="flex flex-1 min-h-0">
       <aside className="w-56 shrink-0 border-r flex flex-col" style={{ borderColor: "var(--border)" }}>
         <div className="px-5 py-5 border-b" style={{ borderColor: "var(--border)" }}>
           <div className="font-display text-lg font-bold tracking-tight">RunwayGuard</div>
@@ -351,6 +358,7 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }
