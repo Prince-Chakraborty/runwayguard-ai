@@ -4,6 +4,10 @@
 
 Built for the Razorpay AI Buildathon 2026 — AI Finance Controller track.
 
+**Live demo:** https://runwayguard-ai.vercel.app (password: `runway-demo-2026`)
+
+**33/33 automated tests passing** | **Deterministic financial guardrails** | **Full audit trail**
+
 ---
 
 ## The Problem
