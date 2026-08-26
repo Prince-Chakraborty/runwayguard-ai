@@ -123,7 +123,7 @@ The provider interface uses generic operation names — `createPaymentHoldReques
 
 The mock provider emits Razorpay-shaped reference IDs (`mock_pout_...`) and writes real `WebhookEvent` rows through the same table the production webhook processor consumes.
 
-**A Razorpay sandbox adapter is architecturally supported (single implementation swap, zero other code changes) but live credentials were not available during development, so it has not been built or tested.**
+**A real Razorpay test-mode adapter is implemented and verified.** `lib/payment-provider/razorpay-provider.ts` makes genuine, authenticated API calls to Razorpay's test-mode Orders API using real test credentials -- confirmed working end-to-end through the actual `PaymentProvider` interface the agent cycle uses, producing real Razorpay-issued order IDs (verifiable directly in the Razorpay dashboard). Scope, stated honestly: standard developer test-mode access covers the Orders/Payments API, not RazorpayX Payouts (which requires separate business current-account approval) -- and Razorpay does not currently document a "hold payout" endpoint at all. The adapter uses real Orders as a verifiable, inspectable artifact representing each treasury intervention, rather than claiming a payout-execution capability that doesn't exist in Razorpay's public API.
 
 ## Setup Instructions
 
@@ -168,7 +168,7 @@ See `docs/DEMO_SCRIPT.md` for the full walkthrough. Short version: seed data cre
 Stated plainly, not hidden:
 
 - **Claude integration is built but unrun** — no Anthropic API credential was available during development. Architecture supports it with a single env-var change.
-- **Razorpay sandbox integration is not built** — no live credentials were available. The adapter interface supports it without touching agent or guardrail logic.
+- **Razorpay test-mode integration is real and verified**, but scoped to the Orders/Payments API available under standard developer access — not RazorpayX Payouts, which requires separate business account approval this project did not have.
 - **Held payables are excluded from the forecast rather than rescheduled** to a new due date — a v1 simplification. Production would reschedule to `dueDate + delayDays` and re-forecast.
 - **Single-tenant demo auth** (one password, one seeded merchant) — production would need per-merchant signup and credential management.
 - No automated tests exist yet for the frontend UI layer — test coverage is backend/API-focused.
