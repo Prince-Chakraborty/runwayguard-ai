@@ -125,6 +125,15 @@ The mock provider emits Razorpay-shaped reference IDs (`mock_pout_...`) and writ
 
 **A real Razorpay test-mode adapter is implemented and verified.** `lib/payment-provider/razorpay-provider.ts` makes genuine, authenticated API calls to Razorpay's test-mode Orders API using real test credentials -- confirmed working end-to-end through the actual `PaymentProvider` interface the agent cycle uses, producing real Razorpay-issued order IDs (verifiable directly in the Razorpay dashboard). Scope, stated honestly: standard developer test-mode access covers the Orders/Payments API, not RazorpayX Payouts (which requires separate business current-account approval) -- and Razorpay does not currently document a "hold payout" endpoint at all. The adapter uses real Orders as a verifiable, inspectable artifact representing each treasury intervention, rather than claiming a payout-execution capability that doesn't exist in Razorpay's public API.
 
+## Scalability
+
+This build is intentionally single-merchant/single-tenant for demo clarity, but the architecture was built with specific, real scaling paths in mind rather than left unaddressed:
+
+- **Multi-tenant data model is already in place.** Every table (`Payable`, `Vendor`, `AgentRun`, `AuditLog`, etc.) is merchant-scoped with indexed foreign keys, and every API route already enforces JWT-verified merchant isolation. Adding merchants doesn't require a schema change -- it requires a signup flow instead of the single demo password.
+- **The forecast and guardrail engines are pure functions with no shared mutable state.** Each merchant's forecast cycle reads only that merchant's rows and writes only that merchant's rows, so horizontal scaling (running many merchants' cycles concurrently, or on a schedule via a queue) doesn't require any redesign of the core logic -- only an orchestration layer to trigger cycles per merchant instead of one manual button click.
+- **The payment provider and planner are both swappable adapters**, so scaling to real transaction volume means implementing production-grade providers behind the same interfaces (e.g., a Razorpay adapter with retry/backoff and rate-limit handling, a Claude planner with request batching) without touching agent, guardrail, or execution code.
+- **What would need to change for real scale**, stated honestly rather than glossed over: a job queue (e.g. BullMQ/Redis) to run forecast cycles on a schedule across many merchants instead of a manual trigger; connection pooling tuned for concurrent multi-tenant load (Neon's pooler already provides this at the database layer); and moving the single bcrypt-hashed demo password to real per-merchant authentication. None of these require rewriting the forecast, guardrail, or audit logic -- they are additive infrastructure around a core that was already built merchant-scoped.
+
 ## Setup Instructions
 
 Requires Node.js, PostgreSQL, and npm.
