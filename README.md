@@ -57,7 +57,9 @@ The guardrail layer is the safety boundary. It re-validates every proposed actio
 
 ## Architecture
 
-See `docs/ARCHITECTURE.md` for the full diagram and component breakdown.
+See `docs/ARCHITECTURE.md` for the full breakdown.
+
+![RunwayGuard Architecture](docs/images/architecture-diagram.svg)
 
 **Stack:** Next.js (App Router) + TypeScript, PostgreSQL + Prisma (driver adapters), Vitest, JWT auth with bcrypt. Modular monolith — no microservices; a hackathon-scale product doesn't need the coordination overhead.
 

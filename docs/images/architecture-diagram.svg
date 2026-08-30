@@ -1,0 +1,94 @@
+<svg viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, Menlo, monospace">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7d8a97"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2fd98a"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f0a93f"/>
+    </marker>
+  </defs>
+
+  <rect width="1400" height="900" fill="#0a0e13"/>
+
+  <!-- Title -->
+  <text x="700" y="50" text-anchor="middle" fill="#e8edf1" font-size="28" font-weight="700" font-family="Space Grotesk, sans-serif">RunwayGuard — System Architecture</text>
+  <text x="700" y="76" text-anchor="middle" fill="#7d8a97" font-size="14">FORECAST → PLAN → GUARD → ACT → VERIFY → AUDIT</text>
+
+  <!-- Merchant -->
+  <rect x="600" y="110" width="200" height="50" rx="6" fill="#171d24" stroke="#232b34" stroke-width="1.5"/>
+  <text x="700" y="140" text-anchor="middle" fill="#e8edf1" font-size="15">Merchant Dashboard</text>
+
+  <line x1="700" y1="160" x2="700" y2="195" stroke="#7d8a97" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="720" y="182" fill="#7d8a97" font-size="11">JWT-authenticated</text>
+
+  <!-- Agent Orchestrator -->
+  <rect x="550" y="200" width="300" height="55" rx="6" fill="#171d24" stroke="#2fd98a" stroke-width="1.5"/>
+  <text x="700" y="233" text-anchor="middle" fill="#2fd98a" font-size="15" font-weight="600">Agent Orchestrator</text>
+
+  <line x1="700" y1="255" x2="700" y2="290" stroke="#7d8a97" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Split: Forecast Engine + Planner Interface -->
+  <rect x="280" y="295" width="280" height="70" rx="6" fill="#171d24" stroke="#232b34" stroke-width="1.5"/>
+  <text x="420" y="320" text-anchor="middle" fill="#e8edf1" font-size="14" font-weight="600">Forecast Engine</text>
+  <text x="420" y="340" text-anchor="middle" fill="#7d8a97" font-size="11">deterministic · pure math</text>
+  <text x="420" y="354" text-anchor="middle" fill="#7d8a97" font-size="11">no AI dependency</text>
+
+  <rect x="840" y="295" width="280" height="70" rx="6" fill="#171d24" stroke="#232b34" stroke-width="1.5"/>
+  <text x="980" y="320" text-anchor="middle" fill="#e8edf1" font-size="14" font-weight="600">Planner Interface</text>
+  <text x="980" y="340" text-anchor="middle" fill="#7d8a97" font-size="11">HeuristicPlanner  |  ClaudePlanner</text>
+  <text x="980" y="354" text-anchor="middle" fill="#7d8a97" font-size="11">Zod-validated structured output</text>
+
+  <line x1="650" y1="230" x2="560" y2="330" stroke="#7d8a97" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="850" y1="230" x2="940" y2="330" stroke="#7d8a97" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <line x1="420" y1="365" x2="420" y2="400" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="980" y1="365" x2="980" y2="400" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="420" y1="400" x2="700" y2="400" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="980" y1="400" x2="700" y2="400" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="700" y1="400" x2="700" y2="420" stroke="#7d8a97" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Guardrail Engine (the critical safety boundary) -->
+  <rect x="480" y="425" width="440" height="80" rx="6" fill="#171d24" stroke="#f0a93f" stroke-width="2.5"/>
+  <text x="700" y="458" text-anchor="middle" fill="#f0a93f" font-size="17" font-weight="700">Guardrail Engine</text>
+  <text x="700" y="480" text-anchor="middle" fill="#e8edf1" font-size="12">deterministic · server-side · sole authority on execution</text>
+  <text x="700" y="497" text-anchor="middle" fill="#7d8a97" font-size="11">AI proposes. This decides. Never the reverse.</text>
+
+  <!-- Split to auto-execute / escalate -->
+  <line x1="600" y1="505" x2="450" y2="550" stroke="#2fd98a" stroke-width="1.8" marker-end="url(#arrowGreen)"/>
+  <line x1="800" y1="505" x2="950" y2="550" stroke="#f0a93f" stroke-width="1.8" marker-end="url(#arrowAmber)"/>
+
+  <rect x="290" y="555" width="320" height="60" rx="6" fill="#171d24" stroke="#2fd98a" stroke-width="1.5"/>
+  <text x="450" y="582" text-anchor="middle" fill="#2fd98a" font-size="14" font-weight="600">AUTO-EXECUTE</text>
+  <text x="450" y="600" text-anchor="middle" fill="#7d8a97" font-size="11">within policy limits — no human needed</text>
+
+  <rect x="790" y="555" width="320" height="60" rx="6" fill="#171d24" stroke="#f0a93f" stroke-width="1.5"/>
+  <text x="950" y="582" text-anchor="middle" fill="#f0a93f" font-size="14" font-weight="600">ESCALATE</text>
+  <text x="950" y="600" text-anchor="middle" fill="#7d8a97" font-size="11">Approval Queue — human decision required</text>
+
+  <line x1="450" y1="615" x2="450" y2="645" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="950" y1="615" x2="950" y2="645" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="450" y1="645" x2="700" y2="645" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="950" y1="645" x2="700" y2="645" stroke="#7d8a97" stroke-width="1.2"/>
+  <line x1="700" y1="645" x2="700" y2="665" stroke="#7d8a97" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Payment Provider -->
+  <rect x="500" y="670" width="400" height="65" rx="6" fill="#171d24" stroke="#232b34" stroke-width="1.5"/>
+  <text x="700" y="698" text-anchor="middle" fill="#e8edf1" font-size="14" font-weight="600">Payment Provider Interface</text>
+  <text x="700" y="718" text-anchor="middle" fill="#7d8a97" font-size="11">MockPaymentProvider  |  RazorpayPaymentProvider (test-mode, verified)</text>
+
+  <line x1="700" y1="735" x2="700" y2="770" stroke="#7d8a97" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Verification -->
+  <rect x="560" y="775" width="280" height="50" rx="6" fill="#171d24" stroke="#232b34" stroke-width="1.5"/>
+  <text x="700" y="805" text-anchor="middle" fill="#e8edf1" font-size="14">Verification &amp; Ledger Update</text>
+
+  <line x1="700" y1="825" x2="700" y2="850" stroke="#7d8a97" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Audit Log -->
+  <rect x="560" y="855" width="280" height="40" rx="6" fill="#0a0e13" stroke="#2fd98a" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="700" y="880" text-anchor="middle" fill="#2fd98a" font-size="13" font-weight="600">Append-Only Audit Log</text>
+
+</svg>
