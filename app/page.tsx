@@ -212,7 +212,7 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 px-8 py-6 overflow-y-auto">
+      <main className="flex-1 min-w-0 px-8 py-6 overflow-y-auto">
         {error && (
           <div className="mb-4 px-4 py-2 rounded-md text-sm" style={{ background: "rgba(229,72,77,0.1)", color: "var(--accent-risk)" }}>
             {error}
@@ -277,6 +277,7 @@ export default function Dashboard() {
         {tab === "payables" && (
           <div>
             <h1 className="font-display text-2xl font-bold mb-6">Payables</h1>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
@@ -299,6 +300,7 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
